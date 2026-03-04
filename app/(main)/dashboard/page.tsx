@@ -3,10 +3,7 @@ import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
   const supabase = await createServerClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -16,7 +13,6 @@ export default async function DashboardPage() {
 
   const grade = profile?.grade ?? 3;
 
-  // Get today's words (most recent 10 for the grade)
   const { data: words } = await supabase
     .from("words")
     .select("*")
@@ -24,22 +20,26 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(10);
 
-  // Get already-viewed word IDs for today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { data: viewedHistory } = await supabase
+  const { data: history } = await supabase
     .from("user_word_history")
-    .select("word_id")
+    .select("word_id, quiz_result")
     .eq("user_id", user!.id)
     .gte("viewed_at", today.toISOString());
 
-  const viewedWordIds = new Set((viewedHistory ?? []).map((h) => h.word_id));
+  const viewedWordIds = (history ?? []).map((h) => h.word_id);
+  const knownStatuses: Record<string, boolean | null> = {};
+  for (const h of history ?? []) {
+    knownStatuses[h.word_id] = h.quiz_result;
+  }
 
   return (
     <DashboardClient
       words={words ?? []}
-      viewedWordIds={Array.from(viewedWordIds)}
+      viewedWordIds={viewedWordIds}
+      knownStatuses={knownStatuses}
       userId={user!.id}
     />
   );
