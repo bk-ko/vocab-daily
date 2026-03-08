@@ -79,7 +79,9 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
         setMessage(`오류: ${json.error ?? "알 수 없는 오류"}`);
       } else {
         setMessage(`✅ 오늘 학습이력이 초기화됐어요! (${json.deleted ?? 0}개 삭제)`);
-        router.refresh();
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 800);
       }
     } catch {
       setMessage("네트워크 오류가 발생했어요");
