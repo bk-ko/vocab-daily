@@ -117,6 +117,14 @@ export default function DashboardClient({ words, viewedWordIds, wordStatuses, us
           )}
         </div>
       )}
+
+      {/* 단어 추가 버튼 */}
+      <Link
+        href="/manage"
+        className="mt-6 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 hover:border-blue-300 hover:text-blue-400 transition-colors text-sm font-medium"
+      >
+        <span className="text-lg">＋</span> 단어 추가하기
+      </Link>
     </div>
   );
 }

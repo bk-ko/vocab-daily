@@ -68,15 +68,13 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-bold text-gray-800">{word.word}</h2>
-          {revealed && (
-            <button
-              onClick={(e) => speak(e, word.word)}
-              className="text-blue-400 hover:text-blue-600 transition-colors p-1"
-              title="발음 듣기"
-            >
-              🔊
-            </button>
-          )}
+          <button
+            onClick={(e) => speak(e, word.word)}
+            className="text-blue-400 hover:text-blue-600 transition-colors p-1"
+            title="발음 듣기"
+          >
+            🔊
+          </button>
         </div>
         {!revealed && (
           <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">탭해서 보기</span>
