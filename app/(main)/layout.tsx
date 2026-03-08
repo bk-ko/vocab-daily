@@ -70,6 +70,7 @@ export default async function MainLayout({
         <div className="max-w-lg mx-auto flex">
           {[
             { href: "/dashboard", icon: "🏠", label: "오늘의 단어" },
+            { href: "/quiz", icon: "🧠", label: "퀴즈" },
             { href: "/history", icon: "📋", label: "학습 이력" },
             { href: "/manage", icon: "⚙️", label: "단어 관리" },
           ].map(({ href, icon, label }) => (
