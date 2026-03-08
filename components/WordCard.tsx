@@ -85,14 +85,14 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
         <div className="mt-2 space-y-2">
           <p className="text-gray-700 text-base leading-relaxed">{word.definition}</p>
           {word.example && (
-            <div className="flex items-start gap-2 border-l-2 border-blue-200 pl-3">
-              <p className="text-gray-500 text-sm italic flex-1">{word.example}</p>
+            <div className="border-l-2 border-blue-200 pl-3 space-y-2">
+              <p className="text-gray-500 text-sm italic">{word.example}</p>
               <button
                 onClick={(e) => speak(e, getEnglishOnly(word.example!))}
-                className="text-blue-300 hover:text-blue-500 transition-colors flex-shrink-0 mt-0.5"
+                className="flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all active:scale-95"
                 title="예문 듣기"
               >
-                🔊
+                🔊 <span>예문 듣기</span>
               </button>
             </div>
           )}
