@@ -29,13 +29,19 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
     }
   }
 
-  function speak(e: React.MouseEvent) {
+  function speak(e: React.MouseEvent, text: string) {
     e.stopPropagation();
-    const utterance = new SpeechSynthesisUtterance(word.word);
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 0.9;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+  }
+
+  function getEnglishOnly(example: string) {
+    // "I have a dog. (나는 개를 키운다.)" → "I have a dog."
+    const match = example.match(/^([^(（]+)/);
+    return match ? match[1].trim() : example;
   }
 
   function handleKnown(e: React.MouseEvent, value: boolean) {
@@ -62,7 +68,7 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
           <h2 className="text-2xl font-bold text-gray-800">{word.word}</h2>
           {revealed && (
             <button
-              onClick={speak}
+              onClick={(e) => speak(e, word.word)}
               className="text-blue-400 hover:text-blue-600 transition-colors p-1"
               title="발음 듣기"
             >
@@ -79,9 +85,16 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
         <div className="mt-2 space-y-2">
           <p className="text-gray-700 text-base leading-relaxed">{word.definition}</p>
           {word.example && (
-            <p className="text-gray-500 text-sm italic border-l-2 border-blue-200 pl-3">
-              {word.example}
-            </p>
+            <div className="flex items-start gap-2 border-l-2 border-blue-200 pl-3">
+              <p className="text-gray-500 text-sm italic flex-1">{word.example}</p>
+              <button
+                onClick={(e) => speak(e, getEnglishOnly(word.example!))}
+                className="text-blue-300 hover:text-blue-500 transition-colors flex-shrink-0 mt-0.5"
+                title="예문 듣기"
+              >
+                🔊
+              </button>
+            </div>
           )}
 
           {/* 알아요/몰라요 버튼 */}
