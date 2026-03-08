@@ -26,6 +26,8 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
     if (!revealed) {
       setRevealed(true);
       onViewed?.(word.id);
+    } else {
+      setRevealed(false);
     }
   }
 
