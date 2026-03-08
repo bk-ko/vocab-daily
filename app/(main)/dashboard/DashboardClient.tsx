@@ -90,8 +90,8 @@ export default function DashboardClient({ words, viewedWordIds, wordStatuses, us
         <div className="flex items-center gap-3 mt-1">
           <p className="text-sm text-gray-500">{viewedInCurrent}/{words.length}개 확인</p>
           {unknownCount > 0 && (
-            <Link href="/history?filter=unknown" className="text-sm text-orange-500 font-medium">
-              ❓ 모르는 단어 {unknownCount}개
+            <Link href="/quiz?mode=review" className="text-sm text-orange-500 font-medium">
+              ❓ 모르는 단어 {unknownCount}개 복습
             </Link>
           )}
           {bookmarkCount > 0 && (
@@ -152,8 +152,8 @@ export default function DashboardClient({ words, viewedWordIds, wordStatuses, us
           <p className="text-3xl mb-2">🎉</p>
           <p className="font-bold text-blue-700">오늘 단어를 모두 봤어요!</p>
           {unknownCount > 0 && (
-            <Link href="/history?filter=unknown" className="mt-2 inline-block text-sm text-orange-500 font-medium">
-              모르는 단어 {unknownCount}개 복습하기 →
+            <Link href="/quiz?mode=review" className="mt-2 inline-block text-sm text-orange-500 font-medium">
+              모르는 단어 {unknownCount}개 복습 퀴즈 →
             </Link>
           )}
         </div>

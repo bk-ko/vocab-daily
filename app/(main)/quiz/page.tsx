@@ -1,56 +1,73 @@
 import { createServerClient } from "@/lib/supabase/server";
 import QuizClient from "./QuizClient";
 
-export default async function QuizPage() {
+export default async function QuizPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
+  const isReview = mode === "review";
+
   const supabase = await createServerClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   const level = Number(user!.user_metadata?.level ?? 2);
 
-  // Get today's viewed words
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  let quizWordIds: string[] = [];
 
-  const { data: viewedHistory } = await supabase
-    .from("user_word_history")
-    .select("word_id")
-    .eq("user_id", user!.id)
-    .gte("viewed_at", today.toISOString());
+  if (isReview) {
+    // 복습 모드: 역대 quiz_result = false 단어 (passed 제외)
+    const { data: unknownHistory } = await supabase
+      .from("user_word_history")
+      .select("word_id")
+      .eq("user_id", user!.id)
+      .eq("quiz_result", false)
+      .eq("passed", false)
+      .order("viewed_at", { ascending: false })
+      .limit(20);
+    quizWordIds = (unknownHistory ?? []).map((h) => h.word_id);
+  } else {
+    // 오늘 모드: 오늘 열람한 단어
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { data: viewedHistory } = await supabase
+      .from("user_word_history")
+      .select("word_id")
+      .eq("user_id", user!.id)
+      .gte("viewed_at", today.toISOString());
+    quizWordIds = (viewedHistory ?? []).map((h) => h.word_id);
+  }
 
-  const viewedWordIds = (viewedHistory ?? []).map((h) => h.word_id);
-
-  if (viewedWordIds.length === 0) {
+  if (quizWordIds.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400">
-        <p className="text-4xl mb-3">📖</p>
-        <p className="font-medium text-gray-600">먼저 오늘의 단어를 확인해 주세요!</p>
-        <p className="text-sm mt-1">단어를 탭해서 뜻을 확인한 후 퀴즈를 풀 수 있어요</p>
+        <p className="text-4xl mb-3">{isReview ? "🎉" : "📖"}</p>
+        <p className="font-medium text-gray-600">
+          {isReview ? "모르는 단어가 없어요! 다 외웠군요 👏" : "먼저 오늘의 단어를 확인해 주세요!"}
+        </p>
+        {!isReview && <p className="text-sm mt-1">단어를 탭해서 뜻을 확인한 후 퀴즈를 풀 수 있어요</p>}
       </div>
     );
   }
 
-  // Get word details for viewed words
   const { data: words } = await supabase
     .from("words")
     .select("*")
-    .in("id", viewedWordIds);
+    .in("id", quizWordIds);
 
-  // Get all words for the level (for wrong answer options)
+  // distractor pool: 같은 레벨 다른 단어들 + 다른 레벨도 섞어서 충분히 확보
   const { data: allWords } = await supabase
     .from("words")
     .select("id, definition")
-    .eq("level", level)
-    .not("id", "in", `(${viewedWordIds.join(",")})`)
-    .limit(30);
+    .not("id", "in", `(${quizWordIds.join(",")})`)
+    .limit(50);
 
   return (
     <QuizClient
       words={words ?? []}
       distractors={(allWords ?? []).map((w) => w.definition)}
       userId={user!.id}
+      mode={isReview ? "review" : "today"}
     />
   );
 }
