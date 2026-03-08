@@ -4,6 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const LEVEL_LABELS: Record<number, string> = {
+  1: "🌱 초등 기초",
+  2: "📗 초등 심화",
+  3: "📘 중학 기초",
+  4: "📙 중학 심화",
+};
+
 interface Word {
   id: string;
   word: string;
@@ -15,49 +22,30 @@ interface Word {
 export default function ManageClient({ words: initial, level }: { words: Word[]; level: number }) {
   const router = useRouter();
   const [words, setWords] = useState(initial);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ word: "", definition: "", example: "" });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [message, setMessage] = useState("");
 
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSaving(true);
+  async function handleGenerate() {
+    setGenerating(true);
+    setMessage("");
 
-    const res = await fetch("/api/words", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}`,
-      },
-      body: JSON.stringify([{ ...form, level }]),
-    });
-
-    if (!res.ok) {
-      // Fallback: insert directly via Supabase client (need insert policy)
-      const supabase = createClient();
-      const { data, error: err } = await supabase
-        .from("words")
-        .insert([{ ...form, level }])
-        .select()
-        .single();
-
-      if (err) {
-        setError("단어 추가에 실패했어요.");
-        setSaving(false);
-        return;
-      }
-      setWords((prev) => [data, ...prev]);
-    } else {
+    try {
+      const res = await fetch("/api/words/generate", { method: "POST" });
       const json = await res.json();
-      setWords((prev) => [...json.words, ...prev]);
-    }
 
-    setForm({ word: "", definition: "", example: "" });
-    setShowForm(false);
-    setSaving(false);
-    router.refresh();
+      if (!res.ok) {
+        setMessage(json.error ?? "오류가 발생했어요");
+      } else if (json.inserted === 0) {
+        setMessage(json.message ?? "새 단어가 없어요");
+      } else {
+        setMessage(`✅ ${json.inserted}개 단어가 추가됐어요!`);
+        router.refresh();
+      }
+    } catch {
+      setMessage("네트워크 오류가 발생했어요");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -67,75 +55,59 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
     setWords((prev) => prev.filter((w) => w.id !== id));
   }
 
-  const levelNames: Record<number, string> = { 1: "Lv.1 기초", 2: "Lv.2 심화", 3: "Lv.3 중급", 4: "Lv.4 고급" };
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">단어 관리</h1>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 transition-colors"
-        >
-          {showForm ? "취소" : "+ 추가"}
-        </button>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">단어 관리</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{LEVEL_LABELS[level]} · 총 {words.length}개</p>
+        </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleAdd} className="bg-white rounded-2xl shadow-sm p-5 mb-5 space-y-3">
-          <h2 className="font-semibold text-gray-700">새 단어 추가 ({levelNames[level] ?? `Lv.${level}`})</h2>
-          <input
-            type="text"
-            placeholder="영어 단어 (예: apple)"
-            value={form.word}
-            onChange={(e) => setForm((f) => ({ ...f, word: e.target.value }))}
-            required
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="뜻 (예: 사과. 빨갛고 둥근 과일)"
-            value={form.definition}
-            onChange={(e) => setForm((f) => ({ ...f, definition: e.target.value }))}
-            required
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="예문 (예: I eat an apple. (나는 사과를 먹는다.))"
-            value={form.example}
-            onChange={(e) => setForm((f) => ({ ...f, example: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-          />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full py-2.5 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors"
-          >
-            {saving ? "저장 중..." : "저장"}
-          </button>
-        </form>
+      {/* AI 생성 버튼 */}
+      <button
+        onClick={handleGenerate}
+        disabled={generating}
+        className="w-full py-4 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 disabled:opacity-60 text-white rounded-2xl font-semibold text-base transition-colors flex items-center justify-center gap-2 mb-3"
+      >
+        {generating ? (
+          <>
+            <span className="animate-spin">⏳</span> AI가 단어 생성 중...
+          </>
+        ) : (
+          <>✨ AI로 단어 15개 자동 생성</>
+        )}
+      </button>
+
+      {message && (
+        <p className={`text-sm text-center mb-4 font-medium ${message.startsWith("✅") ? "text-green-600" : "text-red-500"}`}>
+          {message}
+        </p>
       )}
 
+      {/* 단어 목록 */}
       <div className="space-y-2">
-        {words.length === 0 && (
-          <p className="text-center text-gray-400 py-10">단어가 없어요. 추가해보세요!</p>
-        )}
-        {words.map((word) => (
-          <div key={word.id} className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-800">{word.word}</p>
-              <p className="text-sm text-gray-400 truncate">{word.definition}</p>
-            </div>
-            <button
-              onClick={() => handleDelete(word.id)}
-              className="ml-3 text-gray-300 hover:text-red-400 transition-colors text-lg flex-shrink-0"
-            >
-              🗑
-            </button>
+        {words.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-4xl mb-3">📭</p>
+            <p className="font-medium">단어가 없어요. 위 버튼으로 생성해보세요!</p>
           </div>
-        ))}
+        ) : (
+          words.map((word) => (
+            <div key={word.id} className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-800">{word.word}</p>
+                <p className="text-sm text-gray-400 truncate">{word.definition}</p>
+              </div>
+              <button
+                onClick={() => handleDelete(word.id)}
+                className="ml-3 text-gray-300 hover:text-red-400 transition-colors text-lg flex-shrink-0"
+              >
+                🗑
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
