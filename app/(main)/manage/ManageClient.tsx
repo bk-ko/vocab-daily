@@ -19,7 +19,7 @@ interface Word {
   level: number;
 }
 
-export default function ManageClient({ words: initial, level, userId }: { words: Word[]; level: number; userId: string }) {
+export default function ManageClient({ words: initial, level }: { words: Word[]; level: number }) {
   const router = useRouter();
   const [words, setWords] = useState(initial);
   const [generating, setGenerating] = useState(false);
@@ -72,19 +72,13 @@ export default function ManageClient({ words: initial, level, userId }: { words:
     setResetting(true);
     setMessage("");
     try {
-      const supabase = createClient();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { error } = await supabase
-        .from("user_word_history")
-        .delete()
-        .eq("user_id", userId)
-        .gte("viewed_at", today.toISOString());
+      const res = await fetch("/api/history/reset-today", { method: "DELETE" });
+      const json = await res.json();
 
-      if (error) {
-        setMessage("초기화 중 오류가 발생했어요");
+      if (!res.ok) {
+        setMessage(`오류: ${json.error ?? "알 수 없는 오류"}`);
       } else {
-        setMessage("✅ 오늘 학습이력이 초기화됐어요!");
+        setMessage(`✅ 오늘 학습이력이 초기화됐어요! (${json.deleted ?? 0}개 삭제)`);
         router.refresh();
       }
     } catch {
