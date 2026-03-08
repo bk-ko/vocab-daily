@@ -26,8 +26,12 @@ export default async function MainLayout({
             📚 단어장
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/select-grade" className="text-sm text-gray-500 hover:text-blue-500 transition-colors">
-              {user.email?.split("@")[0]} ({gradeLabel ?? "초4"})
+            <Link href="/select-grade" className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500 transition-colors">
+              <span>{user.email?.split("@")[0]}</span>
+              <span className="bg-blue-100 text-blue-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                {gradeLabel ?? "학년선택"}
+              </span>
+              <span className="text-xs">✏️</span>
             </Link>
             <LogoutButton />
           </div>
