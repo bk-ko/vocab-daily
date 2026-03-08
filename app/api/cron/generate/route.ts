@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   );
   const results: Record<number, { inserted: number; skipped: number }> = {};
 
-  for (const grade of [3, 4, 5, 6]) {
+  for (const grade of [4, 7]) {
     try {
       const generatedWords = await generateWordsForGrade(grade);
 

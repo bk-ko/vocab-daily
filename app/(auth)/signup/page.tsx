@@ -8,10 +8,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const GRADES = [
-  { value: 3, label: "초등 3학년" },
-  { value: 4, label: "초등 4학년" },
-  { value: 5, label: "초등 5학년" },
-  { value: 6, label: "초등 6학년" },
+  { value: "초4", label: "초등 4학년" },
+  { value: "중1", label: "중학교 1학년" },
 ];
 
 export default function SignupPage() {
@@ -19,7 +17,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [grade, setGrade] = useState(3);
+  const [grade, setGrade] = useState("초4");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,20 +30,15 @@ export default function SignupPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: { grade, name },
+      },
     });
 
     if (signUpError) {
       setError(signUpError.message);
       setLoading(false);
       return;
-    }
-
-    if (data.user) {
-      // Update profile with name and grade
-      await supabase
-        .from("profiles")
-        .update({ grade, name })
-        .eq("id", data.user.id);
     }
 
     router.push("/dashboard");
@@ -78,7 +71,7 @@ export default function SignupPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">학년</label>
             <select
               value={grade}
-              onChange={(e) => setGrade(Number(e.target.value))}
+              onChange={(e) => setGrade(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white"
             >
               {GRADES.map((g) => (

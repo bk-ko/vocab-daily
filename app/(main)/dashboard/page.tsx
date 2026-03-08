@@ -5,13 +5,8 @@ export default async function DashboardPage() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("grade")
-    .eq("id", user!.id)
-    .single();
-
-  const grade = profile?.grade ?? 3;
+  const gradeLabel = user!.user_metadata?.grade as string | undefined;
+  const grade = gradeLabel === "중1" ? 7 : 4;
 
   const { data: words } = await supabase
     .from("words")

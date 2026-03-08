@@ -15,11 +15,7 @@ export default async function MainLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, grade")
-    .eq("id", user.id)
-    .single();
+  const gradeLabel = user.user_metadata?.grade as string | undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -30,9 +26,9 @@ export default async function MainLayout({
             📚 단어장
           </Link>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">
-              {profile?.name ?? user.email?.split("@")[0]} ({profile?.grade ?? 3}학년)
-            </span>
+            <Link href="/select-grade" className="text-sm text-gray-500 hover:text-blue-500 transition-colors">
+              {user.email?.split("@")[0]} ({gradeLabel ?? "초4"})
+            </Link>
             <LogoutButton />
           </div>
         </div>
