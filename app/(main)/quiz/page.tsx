@@ -8,8 +8,7 @@ export default async function QuizPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const gradeLabel = user!.user_metadata?.grade as string | undefined;
-  const grade = gradeLabel === "중1" ? 7 : 4;
+  const level = Number(user!.user_metadata?.level ?? 2);
 
   // Get today's viewed words
   const today = new Date();
@@ -39,11 +38,11 @@ export default async function QuizPage() {
     .select("*")
     .in("id", viewedWordIds);
 
-  // Get all words for the grade (for wrong answer options)
+  // Get all words for the level (for wrong answer options)
   const { data: allWords } = await supabase
     .from("words")
     .select("id, definition")
-    .eq("grade", grade)
+    .eq("level", level)
     .not("id", "in", `(${viewedWordIds.join(",")})`)
     .limit(30);
 

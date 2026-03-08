@@ -6,32 +6,34 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const GRADES = [
-  { value: "초4", label: "초등 4학년", emoji: "🏫", description: "초등학교 수준 영어 단어" },
-  { value: "중1", label: "중학교 1학년", emoji: "🎒", description: "중학교 수준 영어 단어" },
+const LEVELS = [
+  { value: 1, label: "초등 기초", emoji: "🌱", description: "초3-4 수준 · 아주 쉬운 일상단어", cefr: "A1" },
+  { value: 2, label: "초등 심화", emoji: "📗", description: "초5-6 수준 · 중간 난이도", cefr: "A2" },
+  { value: 3, label: "중학 기초", emoji: "📘", description: "중1-2 수준 · 다소 어려운 단어", cefr: "B1" },
+  { value: 4, label: "중학 심화", emoji: "📙", description: "중3-고1 수준 · 어려운 단어", cefr: "B1+" },
 ];
 
 export default function SelectGradePage() {
   const router = useRouter();
-  const [current, setCurrent] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [current, setCurrent] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      const grade = user?.user_metadata?.grade ?? null;
-      setCurrent(grade);
+      const level = user?.user_metadata?.level ?? null;
+      setCurrent(level != null ? Number(level) : null);
     });
   }, []);
 
-  async function handleSelect(grade: string) {
+  async function handleSelect(level: number) {
     if (loading) return;
-    setSelected(grade);
+    setSelected(level);
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ data: { grade } });
+    const { error } = await supabase.auth.updateUser({ data: { level } });
 
     if (error) {
       setLoading(false);
@@ -48,33 +50,38 @@ export default function SelectGradePage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">📚</div>
-          <h1 className="text-3xl font-bold text-blue-600">학년 선택</h1>
+          <h1 className="text-3xl font-bold text-blue-600">레벨 선택</h1>
           <p className="text-gray-500 mt-1 text-sm">
-            {current ? "학년을 변경할 수 있어요" : "학년에 맞는 단어를 배워요!"}
+            {current ? "레벨을 변경할 수 있어요" : "나에게 맞는 레벨을 골라요!"}
           </p>
         </div>
 
-        <div className="space-y-4">
-          {GRADES.map((g) => {
-            const isCurrent = current === g.value;
-            const isSelected = selected === g.value;
+        <div className="space-y-3">
+          {LEVELS.map((l) => {
+            const isCurrent = current === l.value;
+            const isSelected = selected === l.value;
             return (
               <button
-                key={g.value}
-                onClick={() => handleSelect(g.value)}
+                key={l.value}
+                onClick={() => handleSelect(l.value)}
                 disabled={loading}
-                className={`w-full bg-white rounded-2xl shadow-sm p-6 text-left transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 ${
+                className={`w-full bg-white rounded-2xl shadow-sm p-5 text-left transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 ${
                   isSelected || isCurrent
                     ? "ring-2 ring-blue-500"
                     : "ring-1 ring-gray-100"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="text-4xl">{g.emoji}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{l.emoji}</span>
                     <div>
-                      <p className="text-lg font-bold text-gray-800">{g.label}</p>
-                      <p className="text-sm text-gray-500">{g.description}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-gray-800">{l.label}</p>
+                        <span className="text-xs bg-gray-100 text-gray-500 font-medium px-1.5 py-0.5 rounded">
+                          {l.cefr}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">{l.description}</p>
                     </div>
                   </div>
                   {isCurrent && !isSelected && (

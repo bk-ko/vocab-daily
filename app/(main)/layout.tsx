@@ -3,6 +3,13 @@ import { createServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 
+const LEVEL_LABELS: Record<number, string> = {
+  1: "Lv.1 기초",
+  2: "Lv.2 심화",
+  3: "Lv.3 중급",
+  4: "Lv.4 고급",
+};
+
 export default async function MainLayout({
   children,
 }: {
@@ -15,7 +22,8 @@ export default async function MainLayout({
 
   if (!user) redirect("/login");
 
-  const gradeLabel = user.user_metadata?.grade as string | undefined;
+  const level = user.user_metadata?.level as number | undefined;
+  const levelLabel = level ? LEVEL_LABELS[level] : undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -29,7 +37,7 @@ export default async function MainLayout({
             <Link href="/select-grade" className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500 transition-colors">
               <span>{user.email?.split("@")[0]}</span>
               <span className="bg-blue-100 text-blue-600 text-xs font-semibold px-2 py-0.5 rounded-full">
-                {gradeLabel ?? "학년선택"}
+                {levelLabel ?? "레벨선택"}
               </span>
               <span className="text-xs">✏️</span>
             </Link>

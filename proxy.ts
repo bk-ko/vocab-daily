@@ -48,9 +48,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 학년 미설정 → /select-grade로 (API, select-grade 페이지 자체는 제외)
-  const grade = user.user_metadata?.grade;
-  if (!grade && pathname !== "/select-grade" && !isApiRoute) {
+  // 레벨 미설정 → /select-grade로 (API, select-grade 페이지 자체는 제외)
+  const level = user.user_metadata?.level;
+  if (!level && pathname !== "/select-grade" && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/select-grade";
     return NextResponse.redirect(url);

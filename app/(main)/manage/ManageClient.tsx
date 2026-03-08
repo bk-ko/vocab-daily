@@ -9,10 +9,10 @@ interface Word {
   word: string;
   definition: string;
   example?: string;
-  grade: number;
+  level: number;
 }
 
-export default function ManageClient({ words: initial, grade }: { words: Word[]; grade: number }) {
+export default function ManageClient({ words: initial, level }: { words: Word[]; level: number }) {
   const router = useRouter();
   const [words, setWords] = useState(initial);
   const [showForm, setShowForm] = useState(false);
@@ -31,7 +31,7 @@ export default function ManageClient({ words: initial, grade }: { words: Word[];
         "Content-Type": "application/json",
         "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}`,
       },
-      body: JSON.stringify([{ ...form, grade }]),
+      body: JSON.stringify([{ ...form, level }]),
     });
 
     if (!res.ok) {
@@ -39,7 +39,7 @@ export default function ManageClient({ words: initial, grade }: { words: Word[];
       const supabase = createClient();
       const { data, error: err } = await supabase
         .from("words")
-        .insert([{ ...form, grade }])
+        .insert([{ ...form, level }])
         .select()
         .single();
 
@@ -67,6 +67,8 @@ export default function ManageClient({ words: initial, grade }: { words: Word[];
     setWords((prev) => prev.filter((w) => w.id !== id));
   }
 
+  const levelNames: Record<number, string> = { 1: "Lv.1 기초", 2: "Lv.2 심화", 3: "Lv.3 중급", 4: "Lv.4 고급" };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -81,7 +83,7 @@ export default function ManageClient({ words: initial, grade }: { words: Word[];
 
       {showForm && (
         <form onSubmit={handleAdd} className="bg-white rounded-2xl shadow-sm p-5 mb-5 space-y-3">
-          <h2 className="font-semibold text-gray-700">새 단어 추가 ({grade}학년)</h2>
+          <h2 className="font-semibold text-gray-700">새 단어 추가 ({levelNames[level] ?? `Lv.${level}`})</h2>
           <input
             type="text"
             placeholder="영어 단어 (예: apple)"

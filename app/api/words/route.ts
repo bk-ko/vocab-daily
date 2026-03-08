@@ -13,23 +13,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get user's grade
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("grade")
-    .eq("id", user.id)
-    .single();
+  // Get user's level
+  const level = Number(user.user_metadata?.level ?? 2);
 
-  const grade = profile?.grade ?? 3;
-
-  // Get today's words (most recent batch for the grade)
+  // Get today's words (most recent batch for the level)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const { data: words, error } = await supabase
     .from("words")
     .select("*")
-    .eq("grade", grade)
+    .eq("level", level)
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -37,7 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ words, grade });
+  return NextResponse.json({ words, level });
 }
 
 export async function POST(request: NextRequest) {

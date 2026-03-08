@@ -5,14 +5,13 @@ export default async function ManagePage() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const gradeLabel = user!.user_metadata?.grade as string | undefined;
-  const grade = gradeLabel === "중1" ? 7 : 4;
+  const level = Number(user!.user_metadata?.level ?? 2);
 
   const { data: words } = await supabase
     .from("words")
     .select("*")
-    .eq("grade", grade)
+    .eq("level", level)
     .order("created_at", { ascending: false });
 
-  return <ManageClient words={words ?? []} grade={grade} />;
+  return <ManageClient words={words ?? []} level={level} />;
 }
