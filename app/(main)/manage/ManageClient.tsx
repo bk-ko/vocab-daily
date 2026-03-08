@@ -19,10 +19,11 @@ interface Word {
   level: number;
 }
 
-export default function ManageClient({ words: initial, level }: { words: Word[]; level: number }) {
+export default function ManageClient({ words: initial, level, userId }: { words: Word[]; level: number; userId: string }) {
   const router = useRouter();
   const [words, setWords] = useState(initial);
   const [generating, setGenerating] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState("");
   const [newWordIds, setNewWordIds] = useState<Set<string>>(new Set());
 
@@ -66,6 +67,33 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
     setWords((prev) => prev.filter((w) => w.id !== id));
   }
 
+  async function handleResetToday() {
+    if (!confirm("오늘 학습이력을 모두 초기화할까요?\n(단어 자체는 삭제되지 않아요)")) return;
+    setResetting(true);
+    setMessage("");
+    try {
+      const supabase = createClient();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { error } = await supabase
+        .from("user_word_history")
+        .delete()
+        .eq("user_id", userId)
+        .gte("viewed_at", today.toISOString());
+
+      if (error) {
+        setMessage("초기화 중 오류가 발생했어요");
+      } else {
+        setMessage("✅ 오늘 학습이력이 초기화됐어요!");
+        router.refresh();
+      }
+    } catch {
+      setMessage("네트워크 오류가 발생했어요");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -95,6 +123,17 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
           {message}
         </p>
       )}
+
+      {/* 오늘 학습이력 초기화 */}
+      <div className="mt-2 mb-6">
+        <button
+          onClick={handleResetToday}
+          disabled={resetting}
+          className="w-full py-3 border-2 border-dashed border-red-200 text-red-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 rounded-2xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+        >
+          {resetting ? "⏳ 초기화 중..." : "🔄 오늘 학습이력 초기화 (테스트용)"}
+        </button>
+      </div>
 
       {/* 단어 목록 */}
       <div className="space-y-2">

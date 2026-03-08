@@ -13,5 +13,5 @@ export default async function ManagePage() {
     .eq("level", level)
     .order("created_at", { ascending: false });
 
-  return <ManageClient words={words ?? []} level={level} />;
+  return <ManageClient words={words ?? []} level={level} userId={user!.id} />;
 }
