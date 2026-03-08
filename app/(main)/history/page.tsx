@@ -10,12 +10,20 @@ export default async function HistoryPage({
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // 전체 이력에서 count 집계 (필터 미적용)
+  const { data: allHistory } = await supabase
+    .from("user_word_history")
+    .select("quiz_result, bookmarked")
+    .eq("user_id", user!.id);
+
+  const unknownCount  = (allHistory ?? []).filter((h) => h.quiz_result === false).length;
+  const bookmarkCount = (allHistory ?? []).filter((h) => h.bookmarked === true).length;
+
+  // 필터 조건을 transform 메서드(order/limit) 이전에 적용
   let query = supabase
     .from("user_word_history")
     .select(`id, viewed_at, quiz_result, bookmarked, words ( id, word, definition, level )`)
-    .eq("user_id", user!.id)
-    .order("viewed_at", { ascending: false })
-    .limit(100);
+    .eq("user_id", user!.id);
 
   if (filter === "unknown") {
     query = query.eq("quiz_result", false);
@@ -23,10 +31,9 @@ export default async function HistoryPage({
     query = query.eq("bookmarked", true);
   }
 
-  const { data: history } = await query;
-
-  const unknownCount  = (history ?? []).filter((h) => h.quiz_result === false).length;
-  const bookmarkCount = (history ?? []).filter((h) => h.bookmarked === true).length;
+  const { data: history } = await query
+    .order("viewed_at", { ascending: false })
+    .limit(100);
 
   const groupedByDate: Record<string, typeof history> = {};
   for (const item of history ?? []) {

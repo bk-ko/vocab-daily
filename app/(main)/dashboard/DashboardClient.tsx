@@ -20,11 +20,14 @@ interface DashboardClientProps {
   viewedWordIds: string[];
   wordStatuses: Record<string, WordStatus>;
   userId: string;
+  currentLevel: number;
+  totalPassedCount: number;
 }
 
-export default function DashboardClient({ words, viewedWordIds, wordStatuses, userId }: DashboardClientProps) {
+export default function DashboardClient({ words, viewedWordIds, wordStatuses, userId, currentLevel, totalPassedCount }: DashboardClientProps) {
   const [viewed, setViewed] = useState<Set<string>>(new Set(viewedWordIds));
   const [statuses, setStatuses] = useState<Record<string, WordStatus>>(wordStatuses);
+  const [passedIds, setPassedIds] = useState<Set<string>>(new Set());
 
   async function handleWordViewed(wordId: string) {
     setViewed((prev) => new Set([...prev, wordId]));
@@ -49,12 +52,31 @@ export default function DashboardClient({ words, viewedWordIds, wordStatuses, us
     );
   }
 
+  async function handlePass(wordId: string) {
+    setPassedIds((prev) => new Set([...prev, wordId]));
+    const supabase = createClient();
+    await supabase.from("user_word_history").upsert(
+      {
+        user_id: userId,
+        word_id: wordId,
+        passed: true,
+        viewed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,word_id" }
+    );
+  }
+
   // 현재 카드 목록 기준으로만 진행 카운트 (오늘 전체 열람 수가 아님)
   const currentWordIds = new Set(words.map((w) => w.id));
-  const viewedInCurrent = words.filter((w) => viewed.has(w.id)).length;
+  const activeWords = words.filter((w) => !passedIds.has(w.id));
+  const viewedInCurrent = activeWords.filter((w) => viewed.has(w.id)).length;
+  const sessionPassedCount = passedIds.size;
+  const showLevelUp = currentLevel < 4 && (totalPassedCount + sessionPassedCount) >= 10;
 
   const unknownCount  = Object.entries(statuses).filter(([id, v]) => currentWordIds.has(id) && v === "unknown").length;
   const bookmarkCount = Object.entries(statuses).filter(([id, v]) => currentWordIds.has(id) && v === "bookmarked").length;
+
+  void currentWordIds; // suppress unused warning
 
   const today = new Date().toLocaleDateString("ko-KR", {
     month: "long", day: "numeric", weekday: "long",
@@ -83,9 +105,23 @@ export default function DashboardClient({ words, viewedWordIds, wordStatuses, us
       <div className="bg-gray-200 rounded-full h-2 mb-6">
         <div
           className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-          style={{ width: words.length > 0 ? `${Math.min((viewedInCurrent / words.length) * 100, 100)}%` : "0%" }}
+          style={{ width: activeWords.length > 0 ? `${Math.min((viewedInCurrent / activeWords.length) * 100, 100)}%` : "0%" }}
         />
       </div>
+
+      {/* 레벨업 추천 배너 */}
+      {showLevelUp && (
+        <div className="mb-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-4">
+          <p className="text-sm font-bold text-purple-700 mb-1">🚀 레벨업할 때가 됐어요!</p>
+          <p className="text-xs text-purple-500 mb-3">패스한 단어가 많아졌어요. 다음 레벨에 도전해볼까요?</p>
+          <a
+            href="/select-grade"
+            className="inline-block text-xs font-semibold bg-purple-500 text-white px-4 py-1.5 rounded-xl hover:bg-purple-600 transition-colors"
+          >
+            Lv.{currentLevel + 1}로 올라가기 →
+          </a>
+        </div>
+      )}
 
       {words.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
@@ -105,12 +141,13 @@ export default function DashboardClient({ words, viewedWordIds, wordStatuses, us
               status={statuses[word.id] ?? null}
               onViewed={handleWordViewed}
               onKnown={handleKnown}
+              onPass={handlePass}
             />
           ))}
         </div>
       )}
 
-      {viewedInCurrent === words.length && words.length > 0 && (
+      {viewedInCurrent === activeWords.length && activeWords.length > 0 && (
         <div className="mt-6 text-center bg-blue-50 rounded-2xl p-5">
           <p className="text-3xl mb-2">🎉</p>
           <p className="font-bold text-blue-700">오늘 단어를 모두 봤어요!</p>

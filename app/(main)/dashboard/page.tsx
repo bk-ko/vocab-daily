@@ -9,12 +9,25 @@ export default async function DashboardPage() {
 
   const level = Number(user!.user_metadata?.level ?? 2);
 
-  const { data: words } = await supabase
+  // passed된 단어 ID 목록 조회
+  const { data: passedHistory } = await supabase
+    .from("user_word_history")
+    .select("word_id")
+    .eq("user_id", user!.id)
+    .eq("passed", true);
+
+  const passedWordIds = new Set((passedHistory ?? []).map((h) => h.word_id));
+  const totalPassedCount = passedWordIds.size;
+
+  // passed 단어 제외하고 오늘 단어 조회
+  const { data: allWords } = await supabase
     .from("words")
     .select("*")
     .eq("level", level)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(30);
+
+  const words = (allWords ?? []).filter((w) => !passedWordIds.has(w.id)).slice(0, 10);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -41,10 +54,12 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      words={words ?? []}
+      words={words}
       viewedWordIds={viewedWordIds}
       wordStatuses={wordStatuses}
       userId={user!.id}
+      currentLevel={level}
+      totalPassedCount={totalPassedCount}
     />
   );
 }

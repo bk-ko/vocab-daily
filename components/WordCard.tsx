@@ -16,13 +16,15 @@ interface WordCardProps {
   word: Word;
   onViewed?: (wordId: string) => void;
   onKnown?: (wordId: string, status: WordStatus) => void;
+  onPass?: (wordId: string) => void;
   alreadyViewed?: boolean;
   status?: WordStatus;
 }
 
-export default function WordCard({ word, onViewed, onKnown, alreadyViewed = false, status: initialStatus = null }: WordCardProps) {
+export default function WordCard({ word, onViewed, onKnown, onPass, alreadyViewed = false, status: initialStatus = null }: WordCardProps) {
   const [revealed, setRevealed] = useState(alreadyViewed);
   const [status, setStatus] = useState<WordStatus>(initialStatus);
+  const [passed, setPassed] = useState(false);
 
   function handleTap() {
     if (!revealed) {
@@ -53,12 +55,32 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
     onKnown?.(word.id, value);
   }
 
+  function handlePass(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPassed(true);
+    onPass?.(word.id);
+  }
+
   const borderClass =
-    status === "known"      ? "border-2 border-green-200"
+    passed                  ? "border-2 border-gray-100 opacity-40"
+    : status === "known"      ? "border-2 border-green-200"
     : status === "unknown"  ? "border-2 border-orange-200"
     : status === "bookmarked" ? "border-2 border-yellow-300"
     : revealed              ? "border-2 border-blue-200"
     :                         "border-2 border-transparent";
+
+  if (passed) {
+    return (
+      <div className={`bg-white rounded-2xl shadow-sm p-4 transition-all ${borderClass}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-gray-400">{word.word}</span>
+            <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">⏩ 패스됨</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -126,6 +148,14 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
               }`}
             >
               ❓ 몰라요
+            </button>
+          </div>
+          <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={handlePass}
+              className="w-full py-1.5 rounded-xl text-xs font-medium text-gray-300 hover:text-gray-500 hover:bg-gray-50 transition-all"
+            >
+              ⏩ 너무 쉬워요 (패스)
             </button>
           </div>
         </div>
