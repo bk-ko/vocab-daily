@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+type WordStatus = "known" | "unknown" | "bookmarked" | null;
+
 interface Word {
   id: string;
   word: string;
@@ -13,14 +15,14 @@ interface Word {
 interface WordCardProps {
   word: Word;
   onViewed?: (wordId: string) => void;
-  onKnown?: (wordId: string, known: boolean) => void;
+  onKnown?: (wordId: string, status: WordStatus) => void;
   alreadyViewed?: boolean;
-  knownStatus?: boolean | null; // true=알아요, false=몰라요, null=미선택
+  status?: WordStatus;
 }
 
-export default function WordCard({ word, onViewed, onKnown, alreadyViewed = false, knownStatus = null }: WordCardProps) {
+export default function WordCard({ word, onViewed, onKnown, alreadyViewed = false, status: initialStatus = null }: WordCardProps) {
   const [revealed, setRevealed] = useState(alreadyViewed);
-  const [known, setKnown] = useState<boolean | null>(knownStatus);
+  const [status, setStatus] = useState<WordStatus>(initialStatus);
 
   function handleTap() {
     if (!revealed) {
@@ -41,29 +43,27 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
   }
 
   function getEnglishOnly(example: string) {
-    // "I have a dog. (나는 개를 키운다.)" → "I have a dog."
     const match = example.match(/^([^(（]+)/);
     return match ? match[1].trim() : example;
   }
 
-  function handleKnown(e: React.MouseEvent, value: boolean) {
+  function handleStatus(e: React.MouseEvent, value: WordStatus) {
     e.stopPropagation();
-    setKnown(value);
+    setStatus(value);
     onKnown?.(word.id, value);
   }
+
+  const borderClass =
+    status === "known"      ? "border-2 border-green-200"
+    : status === "unknown"  ? "border-2 border-orange-200"
+    : status === "bookmarked" ? "border-2 border-yellow-300"
+    : revealed              ? "border-2 border-blue-200"
+    :                         "border-2 border-transparent";
 
   return (
     <div
       onClick={handleTap}
-      className={`bg-white rounded-2xl shadow-sm p-5 cursor-pointer transition-all active:scale-95 ${
-        known === false
-          ? "border-2 border-orange-200"
-          : known === true
-          ? "border-2 border-green-200"
-          : revealed
-          ? "border-2 border-blue-200"
-          : "border-2 border-transparent"
-      }`}
+      className={`bg-white rounded-2xl shadow-sm p-5 cursor-pointer transition-all active:scale-95 ${borderClass}`}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -92,19 +92,17 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
               <button
                 onClick={(e) => speak(e, getEnglishOnly(word.example!))}
                 className="flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all active:scale-95"
-                title="예문 듣기"
               >
                 🔊 <span>예문 듣기</span>
               </button>
             </div>
           )}
 
-          {/* 알아요/몰라요 버튼 */}
           <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => handleKnown(e, true)}
+              onClick={(e) => handleStatus(e, "known")}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                known === true
+                status === "known"
                   ? "bg-green-500 text-white"
                   : "bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-600"
               }`}
@@ -112,9 +110,19 @@ export default function WordCard({ word, onViewed, onKnown, alreadyViewed = fals
               👍 알아요
             </button>
             <button
-              onClick={(e) => handleKnown(e, false)}
+              onClick={(e) => handleStatus(e, "bookmarked")}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                known === false
+                status === "bookmarked"
+                  ? "bg-yellow-400 text-white"
+                  : "bg-gray-100 text-gray-500 hover:bg-yellow-100 hover:text-yellow-600"
+              }`}
+            >
+              🗂️ 일단보관
+            </button>
+            <button
+              onClick={(e) => handleStatus(e, "unknown")}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+                status === "unknown"
                   ? "bg-orange-400 text-white"
                   : "bg-gray-100 text-gray-500 hover:bg-orange-100 hover:text-orange-500"
               }`}

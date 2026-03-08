@@ -5,6 +5,8 @@ import WordCard from "@/components/WordCard";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
+type WordStatus = "known" | "unknown" | "bookmarked" | null;
+
 interface Word {
   id: string;
   word: string;
@@ -16,13 +18,13 @@ interface Word {
 interface DashboardClientProps {
   words: Word[];
   viewedWordIds: string[];
-  knownStatuses: Record<string, boolean | null>;
+  wordStatuses: Record<string, WordStatus>;
   userId: string;
 }
 
-export default function DashboardClient({ words, viewedWordIds, knownStatuses, userId }: DashboardClientProps) {
+export default function DashboardClient({ words, viewedWordIds, wordStatuses, userId }: DashboardClientProps) {
   const [viewed, setViewed] = useState<Set<string>>(new Set(viewedWordIds));
-  const [known, setKnown] = useState<Record<string, boolean | null>>(knownStatuses);
+  const [statuses, setStatuses] = useState<Record<string, WordStatus>>(wordStatuses);
 
   async function handleWordViewed(wordId: string) {
     setViewed((prev) => new Set([...prev, wordId]));
@@ -33,21 +35,25 @@ export default function DashboardClient({ words, viewedWordIds, knownStatuses, u
     );
   }
 
-  async function handleKnown(wordId: string, value: boolean) {
-    setKnown((prev) => ({ ...prev, [wordId]: value }));
+  async function handleKnown(wordId: string, status: WordStatus) {
+    setStatuses((prev) => ({ ...prev, [wordId]: status }));
     const supabase = createClient();
     await supabase.from("user_word_history").upsert(
-      { user_id: userId, word_id: wordId, quiz_result: value },
+      {
+        user_id: userId,
+        word_id: wordId,
+        quiz_result: status === "known" ? true : status === "unknown" ? false : null,
+        bookmarked: status === "bookmarked",
+      },
       { onConflict: "user_id,word_id" }
     );
   }
 
-  const unknownCount = Object.values(known).filter((v) => v === false).length;
+  const unknownCount  = Object.values(statuses).filter((v) => v === "unknown").length;
+  const bookmarkCount = Object.values(statuses).filter((v) => v === "bookmarked").length;
 
   const today = new Date().toLocaleDateString("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: "long",
+    month: "long", day: "numeric", weekday: "long",
   });
 
   return (
@@ -60,6 +66,11 @@ export default function DashboardClient({ words, viewedWordIds, knownStatuses, u
           {unknownCount > 0 && (
             <Link href="/history?filter=unknown" className="text-sm text-orange-500 font-medium">
               ❓ 모르는 단어 {unknownCount}개
+            </Link>
+          )}
+          {bookmarkCount > 0 && (
+            <Link href="/history?filter=bookmarked" className="text-sm text-yellow-500 font-medium">
+              🗂️ 보관 {bookmarkCount}개
             </Link>
           )}
         </div>
@@ -87,7 +98,7 @@ export default function DashboardClient({ words, viewedWordIds, knownStatuses, u
               key={word.id}
               word={word}
               alreadyViewed={viewed.has(word.id)}
-              knownStatus={known[word.id] ?? null}
+              status={statuses[word.id] ?? null}
               onViewed={handleWordViewed}
               onKnown={handleKnown}
             />
