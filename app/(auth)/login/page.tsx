@@ -13,15 +13,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleAnonymous() {
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      setError("시작하는 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
+      setLoading(false);
+    } else {
+      router.push("/select-grade");
+      router.refresh();
+    }
+  }
+
+  async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
       setError("이메일 또는 비밀번호가 잘못되었습니다.");
       setLoading(false);
@@ -40,50 +53,77 @@ export default function LoginPage() {
           <p className="text-gray-500 mt-1 text-sm">매일 새로운 단어를 배워요!</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-md p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">이메일</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white text-base transition-colors"
-              placeholder="example@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white text-base transition-colors"
-              placeholder="비밀번호 입력"
-            />
-          </div>
-
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
-          )}
-
+        <div className="bg-white rounded-2xl shadow-md p-6 space-y-3">
+          {/* 메인 CTA: 바로 시작 */}
           <button
-            type="submit"
+            onClick={handleAnonymous}
             disabled={loading}
-            className="w-full py-3 bg-blue-500 text-white rounded-xl font-semibold text-base hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 transition-colors mt-2"
+            className="w-full py-4 bg-blue-500 text-white rounded-xl font-bold text-lg hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? "로그인 중..." : "로그인"}
+            {loading && !showEmailForm ? "시작하는 중..." : "📖 바로 시작하기"}
           </button>
-        </form>
+          <p className="text-center text-xs text-gray-400">이메일 없이 바로 학습할 수 있어요</p>
 
-        <p className="text-center mt-4 text-sm text-gray-500">
-          계정이 없으신가요?{" "}
-          <Link href="/signup" className="text-blue-500 font-semibold hover:underline">
-            회원가입
-          </Link>
-        </p>
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-xs text-gray-300">또는</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+
+          {/* 이메일 로그인 */}
+          {!showEmailForm ? (
+            <button
+              onClick={() => setShowEmailForm(true)}
+              className="w-full py-3 border-2 border-gray-200 text-gray-500 rounded-xl font-medium text-sm hover:border-gray-300 hover:text-gray-700 transition-colors"
+            >
+              이메일로 로그인
+            </button>
+          ) : (
+            <form onSubmit={handleEmailLogin} className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white text-base transition-colors"
+                placeholder="이메일"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white text-base transition-colors"
+                placeholder="비밀번호"
+              />
+              {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-blue-500 text-white rounded-xl font-semibold text-base hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              >
+                {loading ? "로그인 중..." : "로그인"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowEmailForm(false); setError(""); }}
+                className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
+              >
+                취소
+              </button>
+            </form>
+          )}
+        </div>
+
+        {!showEmailForm && (
+          <p className="text-center mt-4 text-sm text-gray-500">
+            계정이 없으신가요?{" "}
+            <Link href="/signup" className="text-blue-500 font-semibold hover:underline">
+              회원가입
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

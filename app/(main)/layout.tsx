@@ -35,12 +35,26 @@ export default async function MainLayout({
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/select-grade" className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500 transition-colors">
-              <span>{user.email?.split("@")[0]}</span>
+              {user.is_anonymous ? (
+                <span className="bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">
+                  👤 게스트
+                </span>
+              ) : (
+                <span>{user.email?.split("@")[0]}</span>
+              )}
               <span className="bg-blue-100 text-blue-600 text-xs font-semibold px-2 py-0.5 rounded-full">
                 {levelLabel ?? "레벨선택"}
               </span>
               <span className="text-xs">✏️</span>
             </Link>
+            {user.is_anonymous && (
+              <Link
+                href="/signup"
+                className="text-xs bg-orange-100 text-orange-500 font-semibold px-2 py-1 rounded-full hover:bg-orange-200 transition-colors"
+              >
+                기록저장
+              </Link>
+            )}
             <LogoutButton />
           </div>
         </div>
