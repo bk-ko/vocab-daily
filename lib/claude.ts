@@ -71,9 +71,14 @@ export async function generateWordsForLevel(level: number): Promise<GeneratedWor
     throw new Error("Unexpected response type from Claude");
   }
 
-  // Extract JSON array from response
+  // Extract JSON array from response (마크다운 코드블록 포함 처리)
   const text = content.text.trim();
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
+
+  // 마크다운 ```json ... ``` 블록 먼저 시도
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const searchText = codeBlockMatch ? codeBlockMatch[1] : text;
+
+  const jsonMatch = searchText.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     throw new Error("Could not find JSON array in response");
   }
