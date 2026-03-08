@@ -22,22 +22,29 @@ export async function POST(request: NextRequest) {
   );
 
   try {
-    // 15개 생성 (기본 10개 함수 호출 후 부족하면 추가)
+    // 20개 생성 (2배치 병렬) → 중복 제거 후 최대 15개 삽입
     const [batch1, batch2] = await Promise.all([
       generateWordsForLevel(level),
       generateWordsForLevel(level),
     ]);
-    const generated = [...batch1, ...batch2].slice(0, 15);
 
-    // 기존 단어 중복 제거
+    // 배치 내부 중복 제거 (단어 기준)
+    const seen = new Set<string>();
+    const generated = [...batch1, ...batch2].filter((w) => {
+      if (seen.has(w.word.toLowerCase())) return false;
+      seen.add(w.word.toLowerCase());
+      return true;
+    });
+
+    // DB 기존 단어와 중복 제거
     const { data: existing } = await supabase
       .from("words")
       .select("word")
       .eq("level", level);
 
-    const existingSet = new Set((existing ?? []).map((w) => w.word));
+    const existingSet = new Set((existing ?? []).map((w) => w.word.toLowerCase()));
     const newWords = generated
-      .filter((w) => !existingSet.has(w.word))
+      .filter((w) => !existingSet.has(w.word.toLowerCase()))
       .slice(0, 15)
       .map((w) => ({ ...w, level }));
 
@@ -45,10 +52,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ inserted: 0, message: "모든 단어가 이미 존재해요" });
     }
 
-    const { error } = await supabase.from("words").insert(newWords);
+    const { data: inserted, error } = await supabase
+      .from("words")
+      .insert(newWords)
+      .select("id, word, definition, example, level");
     if (error) throw error;
 
-    return NextResponse.json({ inserted: newWords.length });
+    return NextResponse.json({ inserted: inserted?.length ?? 0, words: inserted });
   } catch (err) {
     console.error("단어 생성 실패:", err);
     return NextResponse.json({ error: "단어 생성에 실패했어요" }, { status: 500 });

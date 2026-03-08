@@ -24,6 +24,7 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
   const [words, setWords] = useState(initial);
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState("");
+  const [newWordIds, setNewWordIds] = useState<Set<string>>(new Set());
 
   async function handleGenerate() {
     setGenerating(true);
@@ -39,7 +40,17 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
         setMessage(json.message ?? "새 단어가 없어요");
       } else {
         setMessage(`✅ ${json.inserted}개 단어가 추가됐어요!`);
-        router.refresh();
+        // 새로 추가된 단어 ID 추적 (NEW 배지 표시용)
+        if (json.words) {
+          const ids = new Set<string>(json.words.map((w: Word) => w.id));
+          setNewWordIds(ids);
+          // 목록에 새 단어 추가 (맨 위에)
+          setWords((prev) => [...json.words, ...prev]);
+        } else {
+          router.refresh();
+        }
+        // 5초 후 NEW 배지 제거
+        setTimeout(() => setNewWordIds(new Set()), 5000);
       }
     } catch {
       setMessage("네트워크 오류가 발생했어요");
@@ -94,9 +105,23 @@ export default function ManageClient({ words: initial, level }: { words: Word[];
           </div>
         ) : (
           words.map((word) => (
-            <div key={word.id} className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
+            <div
+              key={word.id}
+              className={`rounded-xl shadow-sm p-4 flex items-center justify-between transition-colors ${
+                newWordIds.has(word.id)
+                  ? "bg-blue-50 border border-blue-200"
+                  : "bg-white"
+              }`}
+            >
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800">{word.word}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-800">{word.word}</p>
+                  {newWordIds.has(word.id) && (
+                    <span className="text-[10px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
+                      NEW
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-400 truncate">{word.definition}</p>
               </div>
               <button
