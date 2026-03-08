@@ -10,20 +10,23 @@ export default async function HistoryPage({
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const query = supabase
+  let query = supabase
     .from("user_word_history")
-    .select(`id, viewed_at, quiz_result, words ( id, word, definition, grade )`)
+    .select(`id, viewed_at, quiz_result, bookmarked, words ( id, word, definition, level )`)
     .eq("user_id", user!.id)
     .order("viewed_at", { ascending: false })
     .limit(100);
 
   if (filter === "unknown") {
-    query.eq("quiz_result", false);
+    query = query.eq("quiz_result", false);
+  } else if (filter === "bookmarked") {
+    query = query.eq("bookmarked", true);
   }
 
   const { data: history } = await query;
 
-  const unknownCount = (history ?? []).filter((h) => h.quiz_result === false).length;
+  const unknownCount  = (history ?? []).filter((h) => h.quiz_result === false).length;
+  const bookmarkCount = (history ?? []).filter((h) => h.bookmarked === true).length;
 
   const groupedByDate: Record<string, typeof history> = {};
   for (const item of history ?? []) {
@@ -55,6 +58,14 @@ export default async function HistoryPage({
           }`}
         >
           ❓ 모르는 단어 {unknownCount > 0 && `(${unknownCount})`}
+        </Link>
+        <Link
+          href="/history?filter=bookmarked"
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            filter === "bookmarked" ? "bg-yellow-400 text-white" : "bg-white text-gray-500 hover:bg-gray-100"
+          }`}
+        >
+          🗂️ 보관 {bookmarkCount > 0 && `(${bookmarkCount})`}
         </Link>
       </div>
 
