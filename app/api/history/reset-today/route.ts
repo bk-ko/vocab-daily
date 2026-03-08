@@ -29,6 +29,14 @@ export async function DELETE() {
   // KST 자정을 UTC로 변환
   const todayUTC = new Date(kstMidnight.getTime() - kstOffset);
 
+  // 디버그: 실제 데이터 확인
+  const { data: rows } = await admin
+    .from("user_word_history")
+    .select("word_id, viewed_at")
+    .eq("user_id", user.id)
+    .order("viewed_at", { ascending: false })
+    .limit(5);
+
   const { error, count } = await admin
     .from("user_word_history")
     .delete({ count: "exact" })
@@ -39,5 +47,12 @@ export async function DELETE() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ deleted: count });
+  return NextResponse.json({
+    deleted: count,
+    debug: {
+      userId: user.id,
+      todayUTC: todayUTC.toISOString(),
+      recentRows: rows?.map(r => r.viewed_at),
+    }
+  });
 }
