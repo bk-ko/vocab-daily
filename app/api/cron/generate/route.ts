@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { generateWordsForGrade } from "@/lib/claude";
 
+export const maxDuration = 60; // Vercel 최대 60초 허용
+
 export async function GET(request: NextRequest) {
-  // Verify cron secret to prevent unauthorized calls
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -15,13 +16,11 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const results: Record<number, { inserted: number; skipped: number }> = {};
 
-  for (const grade of [4, 7]) {
+  async function processGrade(grade: number) {
     try {
       const generatedWords = await generateWordsForGrade(grade);
 
-      // Get existing words for this grade to check duplicates
       const { data: existingWords } = await supabase
         .from("words")
         .select("word")
@@ -38,15 +37,21 @@ export async function GET(request: NextRequest) {
         if (error) throw error;
       }
 
-      results[grade] = {
-        inserted: newWords.length,
-        skipped: generatedWords.length - newWords.length,
-      };
+      return { inserted: newWords.length, skipped: generatedWords.length - newWords.length };
     } catch (err) {
       console.error(`Failed to generate words for grade ${grade}:`, err);
-      results[grade] = { inserted: 0, skipped: 0 };
+      return { inserted: 0, skipped: 0, error: String(err) };
     }
   }
 
-  return NextResponse.json({ success: true, results });
+  // grade 4, 7 병렬 처리
+  const [result4, result7] = await Promise.all([
+    processGrade(4),
+    processGrade(7),
+  ]);
+
+  return NextResponse.json({
+    success: true,
+    results: { 4: result4, 7: result7 },
+  });
 }
